@@ -11,6 +11,7 @@ The dataset used for this project is the **DEEP-VOICE** dataset, available on Ka
 Make sure to install the required Python libraries using the `requirements.txt` file:
 ```bash
 pip install -r requirements.txt
+```
 
 ## Project Structure
 - **data/**: Contains the training and testing audio samples.
@@ -52,3 +53,4 @@ For any queries or suggestions, feel free to reach out:
 
 - **Fahad Kacchi**  
   Email: [fahadkacchi1998@gmail.com](mailto:fahadkacchi1998@gmail.com)
+```
