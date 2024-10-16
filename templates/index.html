@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recognition</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">LOGO</div>
+            <nav>
+                <a href="#">HOME</a>
+                <a href="#">PRODUCTS</a>
+                <a href="#">ABOUT</a>
+                <a href="#">CONTACTS</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="content">
+                <h1>Voice Recognition</h1>
+                <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="upload-container">
+                        <label for="audio-upload" class="upload-button">Choose Audio File</label>
+                        <input type="file" id="audio-upload" name="file" accept="audio/*" onchange="displayFileName()">
+                        <span id="file-name">No file chosen</span>
+                    </div>
+                    <div>
+                        <button type="submit">Check Audio</button>
+                    </div>
+                </form>
+                {% if prediction_text %}
+                    <p>{{ prediction_text }}</p>
+                {% endif %}
+            </section>
+            
+            <section class="phone">
+                <img src="static/image7.jpg" alt="Phone displaying voice recognition app">
+            </section>
+        </main>
+    </div>
+
+    <script src="static/index.js"></script>
+</body>
+</html>

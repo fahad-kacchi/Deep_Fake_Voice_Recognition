@@ -1,0 +1,130 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-image: url('background_final.png'); /* Replace with your image path */
+    background-size: cover; /* Ensures the image covers the entire page */
+    background-repeat: no-repeat; /* Prevents the image from repeating */
+    background-position: center; /* Centers the background image */
+    background-attachment: fixed; /* Keeps the background image fixed when scrolling */
+}
+
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: left;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    width: 80%;
+    padding: 20px;
+    background-color: white;
+}
+
+header .logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: rgb(75, 35, 9);
+}
+
+header nav a {
+    margin-left: 24px;
+    text-decoration: none;
+    color: rgb(75, 35, 9);
+    font-weight: bold;
+}
+
+main {
+    display: flex;
+    flex-direction: row;
+    width: 80%;
+    margin-top: 50px;
+}
+
+.content {
+    flex: 1;
+    padding-right: 50px;
+}
+
+.content h1 {
+    font-size: 48px;
+    color: rgb(75, 35, 9);
+}
+
+.content p {
+    color: rgb(0, 0, 0);
+    line-height: 1.5;
+    font-weight: bold;
+    margin-top: 24px;
+}
+
+.content button {
+    background-color: #f77d19;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-block;
+    margin-right: 10px;
+    margin-top: 20px;
+}
+
+.phone {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f77d19;
+    border-radius: 30px;
+}
+
+.phone img {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Upload Section Styling */
+.upload-section {
+    text-align: center;
+    padding: 50px;
+    background-color: #f4f4f4;
+}
+
+.upload-section h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.upload-container {
+    display: inline-block;
+    position: relative;
+}
+
+.upload-button {
+    background-color: #f77d19;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+#audio-upload {
+    display: none;
+}
+
+#file-name {
+    font-size: 16px;
+    color: #000000;
+}
