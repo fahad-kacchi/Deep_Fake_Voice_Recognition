@@ -1,0 +1,52 @@
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# Uploads & temporary runtime files
+uploads/*
+!uploads/.gitkeep
+temp/
+tmp/
+*.tmp
+
+# Experimental artifacts & logs
+model_experimental.h5
+model_experimental.keras
+model_backup*.h5
+*.log
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Dataset directory & cache
+AUDIO/
+data_deep_voice/
+*.npz
+evaluation_results/
+

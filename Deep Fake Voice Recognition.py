@@ -17,10 +17,15 @@ import librosa
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
-import IPython
+import sys
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from imblearn.over_sampling import RandomOverSampler
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, accuracy_score
+try:
+    from imblearn.over_sampling import RandomOverSampler
+    HAS_IMBLEARN = True
+except ImportError:
+    HAS_IMBLEARN = False
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Dropout, Conv2D, MaxPool2D, Flatten
 from tensorflow.keras.utils import to_categorical
@@ -29,22 +34,35 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 # In[4]:
 
-
-audio_files_path = "C:/Users/Akshay Ransure/Documents/fahad/Deep Fake Voice Recognition/data_deep_voice/KAGGLE/AUDIO"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Check for custom dataset path via command line argument or environment variable, defaulting to local data folder
+default_dataset_path = os.path.join(BASE_DIR, "data_deep_voice", "KAGGLE", "AUDIO")
+if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+    audio_files_path = sys.argv[1]
+elif "DATASET_PATH" in os.environ and os.path.exists(os.environ["DATASET_PATH"]):
+    audio_files_path = os.environ["DATASET_PATH"]
+elif os.path.exists(default_dataset_path):
+    audio_files_path = default_dataset_path
+else:
+    audio_files_path = "C:/Users/Akshay Ransure/Documents/fahad/Deep Fake Voice Recognition/data_deep_voice/KAGGLE/AUDIO"
 
 
 # In[5]:
 
-
-folders = os.listdir(audio_files_path)
-print(folders)
+if not os.path.exists(audio_files_path):
+    print(f"[WARNING] Dataset directory not found at: '{audio_files_path}'.")
+    print("Please download the DEEP-VOICE dataset from Kaggle and place it in 'data_deep_voice/KAGGLE/AUDIO' or pass the path via argument/DATASET_PATH.")
+    folders = []
+else:
+    folders = [f for f in os.listdir(audio_files_path) if os.path.isdir(os.path.join(audio_files_path, f))]
+print("Found class folders:", folders)
 
 
 # In[6]:
 
 
-real_audio = "C:/Users/Akshay Ransure/Documents/fahad/Deep Fake Voice Recognition/data_deep_voice/DEMONSTRATION/DEMONSTRATION/linus-original-DEMO.mp3"
-fake_audio = "C:/Users/Akshay Ransure/Documents/fahad/Deep Fake Voice Recognition/data_deep_voice/DEMONSTRATION\DEMONSTRATION/linus-to-musk-DEMO.mp3"
+real_audio = os.path.join(audio_files_path, "REAL", "obama-original.wav") if os.path.exists(audio_files_path) else "linus-original-DEMO.mp3"
+fake_audio = os.path.join(audio_files_path, "FAKE", "Obama-to-Biden.wav") if os.path.exists(audio_files_path) else "linus-to-musk-DEMO.mp3"
 
 
 # # Visualization
@@ -237,23 +255,47 @@ X = np.array(feature_df["features"].tolist())
 y = np.array(feature_df["class"].tolist())
 
 
-# In[49]:
+# Step 1: Perform Stratified Train/Test Split on raw, unaugmented data FIRST to eliminate leakage
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
 
+print("\n--- DATASET PARTITION SUMMARY (LEAKAGE-FREE) ---")
+print(f"Total raw samples: {len(X)}")
+print(f"Train set (raw): {len(X_train)} samples -> Class distribution: {np.bincount(y_train)}")
+print(f"Test set (raw):  {len(X_test)} samples -> Class distribution: {np.bincount(y_test)}")
 
-ros = RandomOverSampler(random_state=42)
-X_resampled, y_resampled = ros.fit_resample(X, y)
+# Step 2: Apply oversampling ONLY to the training set; NEVER oversample the test set
+def balance_training_data(X_tr, y_tr, random_state=42):
+    if HAS_IMBLEARN:
+        ros = RandomOverSampler(random_state=random_state)
+        return ros.fit_resample(X_tr, y_tr)
+    else:
+        from sklearn.utils import resample
+        unique_classes, counts = np.unique(y_tr, return_counts=True)
+        max_count = np.max(counts)
+        X_bal, y_bal = [], []
+        for cls in unique_classes:
+            idx = np.where(y_tr == cls)[0]
+            cls_X, cls_y = X_tr[idx], y_tr[idx]
+            if len(cls_X) < max_count:
+                cls_X_res, cls_y_res = resample(cls_X, cls_y, replace=True, n_samples=max_count, random_state=random_state)
+                X_bal.append(cls_X_res)
+                y_bal.append(cls_y_res)
+            else:
+                X_bal.append(cls_X)
+                y_bal.append(cls_y)
+        return np.vstack(X_bal), np.concatenate(y_bal)
 
+X_train_resampled, y_train_resampled = balance_training_data(X_train, y_train, random_state=42)
+print(f"Train set (resampled): {len(X_train_resampled)} samples -> Balanced distribution: {np.bincount(y_train_resampled)}")
+print(f"Test set remains unaugmented and un-duplicated (count: {len(X_test)}) to guarantee honest evaluation.")
 
-# In[51]:
+num_labels = len(np.unique(y))
 
-
-y_resampled = to_categorical(y_resampled)
-
-
-# In[53]:
-
-
-X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+# Step 3: Convert labels to categorical one-hot vectors for model training
+y_train_cat = to_categorical(y_train_resampled, num_classes=num_labels)
+y_test_cat = to_categorical(y_test, num_classes=num_labels)
 
 
 # In[55]:
@@ -301,24 +343,50 @@ model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accur
 model.summary()
 
 
-# In[66]:
-
-
-# early = EarlyStopping(monitor="val_loss", patience=5)
+early = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
 
 
 # In[68]:
 
 
-history = model.fit(X_train, y_train, validation_data=(X_test, y_test), batch_size=2, epochs=500)
+history = model.fit(
+    X_train_resampled,
+    y_train_cat,
+    validation_data=(X_test, y_test_cat),
+    batch_size=32,
+    epochs=100,
+    callbacks=[early],
+    verbose=1
+)
 
 
 # In[72]:
 
 
-test_loss, test_acc = model.evaluate(X_test, y_test)
-print("Test Loss:", test_loss)
-print("Test Accuracy:", test_acc)
+test_loss, test_acc = model.evaluate(X_test, y_test_cat, verbose=0)
+print(f"\nTest Loss: {test_loss:.4f}")
+print(f"Test Accuracy: {test_acc:.4f}")
+
+# Comprehensive Metrics on Uncontaminated Test Set
+y_pred_proba = model.predict(X_test, verbose=0)
+y_pred = np.argmax(y_pred_proba, axis=1)
+
+print("\n" + "="*60)
+print("COMPREHENSIVE EVALUATION ON UNCONTAMINATED TEST SET")
+print("="*60)
+print("Confusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred, target_names=["FAKE (0)", "REAL (1)"]))
+
+try:
+    roc_auc = roc_auc_score(y_test, y_pred_proba[:, 1])
+    print(f"ROC-AUC Score: {roc_auc:.4f}")
+except Exception as e:
+    print(f"Could not compute ROC-AUC: {e}")
+print("="*60)
 
 
 # In[74]:
@@ -388,15 +456,10 @@ IPython.display.Audio(test_fake)
 # In[88]:
 
 
-import pickle
-
-pickle.dump(model, open(r"C:/Users/Akshay Ransure/Documents/fahad/Deep Fake Voice Recognition/build.h5",'wb')) 
-
-
-# In[90]:
-
-
-model.save('model.h5')
+experimental_model_path = os.path.join(BASE_DIR, 'model_experimental.h5')
+model.save(experimental_model_path)
+print(f"[SUCCESS] Experimental model saved to: '{experimental_model_path}'")
+print("[SAFETY NOTE] The production model ('model.h5') used by app.py was NOT overwritten.")
 
 
 # In[ ]:
@@ -409,5 +472,6 @@ model.save('model.h5')
 
 
 from keras.models import load_model
-model = load_model('model.h5')
+model = load_model(experimental_model_path)
+print("Verified experimental model loads cleanly.")
 

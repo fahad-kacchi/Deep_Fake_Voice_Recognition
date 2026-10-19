@@ -3,41 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Recognition</title>
+    <title>Deep Fake Voice Recognition</title>
     <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">LOGO</div>
-            <nav>
-                <a href="#">HOME</a>
-                <a href="#">PRODUCTS</a>
-                <a href="#">ABOUT</a>
-                <a href="#">CONTACTS</a>
+            <div class="logo">VOICE<span class="logo-accent">AI</span></div>
+            <nav aria-label="Main Navigation">
+                <a href="/" class="nav-active">HOME</a>
+                <a href="#about">ABOUT</a>
+                <a href="#metrics">SPECIFICATIONS</a>
             </nav>
         </header>
 
         <main>
             <section class="content">
-                <h1>Voice Recognition</h1>
-                <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
-                    <div class="upload-container">
-                        <label for="audio-upload" class="upload-button">Choose Audio File</label>
-                        <input type="file" id="audio-upload" name="file" accept="audio/*" onchange="displayFileName()">
-                        <span id="file-name">No file chosen</span>
+                <div class="badge-tag">ACOUSTIC CLASSIFICATION SYSTEM</div>
+                <h1>Deep Fake Voice Recognition</h1>
+                <p class="subtitle">
+                    Upload a speech recording to detect whether it is authentic human speech or AI-synthesized / cloned audio.
+                </p>
+
+                <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data" novalidate>
+                    <!-- Drag and Drop / Click Upload Zone -->
+                    <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Audio upload drop zone">
+                        <div class="drop-zone-icon">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="22"></line>
+                            </svg>
+                        </div>
+                        <p class="drop-zone-prompt">Drag &amp; drop your audio file here, or <span class="highlight-link">browse</span></p>
+                        
+                        <input type="file" id="audio-upload" name="file" accept=".wav,.mp3,.ogg,audio/wav,audio/mpeg,audio/ogg" class="file-input">
+                        
+                        <div class="upload-specs">
+                            <span class="spec-pill">Formats: WAV, MP3, OGG</span>
+                            <span class="spec-pill">Max Size: 16 MB</span>
+                        </div>
                     </div>
-                    <div>
-                        <button type="submit">Check Audio</button>
+
+                    <!-- Client-Side Validation Message -->
+                    <div id="client-error" class="alert-box alert-error hidden" role="alert"></div>
+
+                    <!-- File Details and Audio Preview Player -->
+                    <div id="file-info-panel" class="file-info-panel hidden">
+                        <div class="file-info-header">
+                            <span class="file-icon">&#9835;</span>
+                            <div class="file-text">
+                                <strong id="file-name-display">filename.wav</strong>
+                                <span id="file-size-display" class="file-size">0 KB</span>
+                            </div>
+                            <button type="button" id="clear-file-btn" class="clear-btn" aria-label="Remove selected file">&times;</button>
+                        </div>
+                        <audio id="audio-preview" controls class="audio-player" aria-label="Audio playback preview"></audio>
+                    </div>
+
+                    <!-- Submit Button & Action Bar -->
+                    <div class="action-bar">
+                        <button type="submit" id="submit-btn" class="submit-button" disabled>
+                            <span id="btn-text">Check Audio</span>
+                        </button>
                     </div>
                 </form>
-                {% if prediction_text %}
-                    <p>{{ prediction_text }}</p>
-                {% endif %}
+
+                <!-- Processing & Loading State -->
+                <div id="loading-state" class="loading-state hidden" aria-live="polite">
+                    <div class="spinner"></div>
+                    <div class="loading-text">
+                        <strong>Analyzing audio...</strong>
+                        <span>Extracting 40 MFCC features and evaluating acoustic patterns...</span>
+                    </div>
+                </div>
+
+                <!-- Server Prediction Result Area -->
+                <div id="result-container" class="result-container">
+                    {% if prediction_text %}
+                        {% if "REAL" in prediction_text %}
+                            <div class="result-card result-real" role="status">
+                                <div class="result-badge-pill badge-real">HUMAN VOICE DETECTED</div>
+                                <h2 class="result-heading">Audio is REAL</h2>
+                                <p class="result-desc">Acoustic frequency distributions align with genuine human vocal characteristics.</p>
+                                <span class="disclaimer-note">ML model prediction based on 40-dimensional Mel-frequency cepstral coefficients.</span>
+                            </div>
+                        {% elif "FAKE" in prediction_text %}
+                            <div class="result-card result-fake" role="status">
+                                <div class="result-badge-pill badge-fake">SYNTHETIC SPEECH DETECTED</div>
+                                <h2 class="result-heading">Audio is FAKE</h2>
+                                <p class="result-desc">Acoustic anomalies detected; spectral characteristics indicate AI synthesis or voice conversion.</p>
+                                <span class="disclaimer-note">ML model prediction based on 40-dimensional Mel-frequency cepstral coefficients.</span>
+                            </div>
+                        {% else %}
+                            <div class="result-card result-notice" role="alert">
+                                <div class="result-badge-pill badge-notice">PROCESSING NOTICE</div>
+                                <h2 class="result-heading">{{ prediction_text }}</h2>
+                                <p class="result-desc">Please verify the audio file meets the requirements and try again.</p>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
             </section>
             
-            <section class="phone">
-                <img src="static/image7.jpg" alt="Phone displaying voice recognition app">
+            <section class="phone-section">
+                <div class="phone-card">
+                    <img src="static/image7.jpg" alt="Voice recognition visual showcase" class="phone-img">
+                    <div class="phone-caption">
+                        <h3>Acoustic MFCC Analysis</h3>
+                        <p>Evaluates Mel-Frequency Cepstral Coefficients to differentiate synthetic speech from human vocal cords.</p>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
